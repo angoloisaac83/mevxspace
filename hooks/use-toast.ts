@@ -3,12 +3,9 @@
 // Inspired by react-hot-toast library
 import * as React from "react"
 
-import type {
-  ToastActionElement,
-  ToastProps,
-} from "@/components/ui/toast"
+import type { ToastActionElement, ToastProps } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
+const TOAST_LIMIT = 5
 const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
@@ -85,9 +82,7 @@ export const reducer = (state: State, action: Action): State => {
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
+        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
       }
 
     case "DISMISS_TOAST": {
@@ -111,7 +106,7 @@ export const reducer = (state: State, action: Action): State => {
                 ...t,
                 open: false,
               }
-            : t
+            : t,
         ),
       }
     }
@@ -189,6 +184,22 @@ function useToast() {
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
+}
+
+toast.success = (description: React.ReactNode, props?: Toast) => {
+  return toast({ description, variant: "success", ...props })
+}
+
+toast.error = (description: React.ReactNode, props?: Toast) => {
+  return toast({ description, variant: "error", ...props })
+}
+
+toast.warning = (description: React.ReactNode, props?: Toast) => {
+  return toast({ description, variant: "warning", ...props })
+}
+
+toast.info = (description: React.ReactNode, props?: Toast) => {
+  return toast({ description, variant: "info", ...props })
 }
 
 export { useToast, toast }
