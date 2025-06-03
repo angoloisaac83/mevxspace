@@ -92,7 +92,7 @@ export default function WalletConnectModal({ onClose, onSuccess }) {
         toast.success(
           <div>
             <p>Wallet connected successfully</p>
-            <p className="text-sm">You need at least 0.8 SOL (incl. fee) to make purchases</p>
+            <p className="text-sm">You need at least 0.7 SOL (incl. fee) to make purchases</p>
           </div>,
         )
 
