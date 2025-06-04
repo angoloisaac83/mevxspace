@@ -1,9 +1,31 @@
 "use client"
 
+import { useEffect } from "react"
+import { useTokenDataStore } from "@/lib/token-data-store"
 import PageTemplate from "@/components/page-template"
 import { Flame, Skull, TrendingUp } from "lucide-react"
+import { motion } from "framer-motion"
 
 export default function DegenZonePage() {
+  const { tokenData, loading, fetchTokenData } = useTokenDataStore()
+
+  useEffect(() => {
+    if (tokenData.length === 0) {
+      fetchTokenData()
+    }
+  }, [tokenData.length, fetchTokenData])
+
+  // Sort by highest volatility (absolute price change)
+  const highVolatilityTokens = [...tokenData]
+    .sort((a, b) => Math.abs(b.pairData?.priceChange?.h24 || 0) - Math.abs(a.pairData?.priceChange?.h24 || 0))
+    .slice(0, 4)
+
+  // Sort by biggest gainers
+  const biggestGainers = [...tokenData]
+    .filter((token) => (token.pairData?.priceChange?.h24 || 0) > 0)
+    .sort((a, b) => (b.pairData?.priceChange?.h24 || 0) - (a.pairData?.priceChange?.h24 || 0))
+    .slice(0, 4)
+
   return (
     <PageTemplate title="Degen Zone">
       <div className="flex items-center gap-2 mb-4">
@@ -35,26 +57,49 @@ export default function DegenZonePage() {
             <h3 className="font-medium">Highest Volatility</h3>
           </div>
           <div className="space-y-2 mt-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
-                  <div>
-                    <div className="font-medium">DEGEN{i}</div>
-                    <div className="text-xs text-orange-400">Volatility: {90 + i}%</div>
+            {loading
+              ? [...Array(4)].map((_, i) => (
+                  <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-700 rounded w-1/2"></div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className={i % 2 === 0 ? "text-green-400" : "text-red-400"}>
-                    {i % 2 === 0 ? "+" : "-"}
-                    {Math.floor(Math.random() * 500)}%
-                  </div>
-                  <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium mt-1">
-                    Trade
-                  </button>
-                </div>
-              </div>
-            ))}
+                ))
+              : highVolatilityTokens.map((token, i) => (
+                  <motion.div
+                    key={i}
+                    className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.1 }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-700 rounded-full overflow-hidden">
+                        {token.profile?.icon && (
+                          <img
+                            src={token.profile.icon || "/placeholder.svg"}
+                            alt={token.pairData?.baseToken?.symbol || "Token"}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{token.pairData?.baseToken?.symbol || "???"}</div>
+                        <div className="text-xs text-orange-400">
+                          Volatility: {Math.abs(token.pairData?.priceChange?.h24 || 0).toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={(token.pairData?.priceChange?.h24 || 0) > 0 ? "text-green-400" : "text-red-400"}>
+                        {(token.pairData?.priceChange?.h24 || 0) > 0 ? "+" : ""}
+                        {(token.pairData?.priceChange?.h24 || 0).toFixed(2)}%
+                      </div>
+                      <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium mt-1">
+                        Trade
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
           </div>
         </div>
 
@@ -64,23 +109,47 @@ export default function DegenZonePage() {
             <h3 className="font-medium">Biggest Gainers (24h)</h3>
           </div>
           <div className="space-y-2 mt-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
-                  <div>
-                    <div className="font-medium">MOON{i}</div>
-                    <div className="text-xs text-gray-400">Vol: ${(Math.random() * 100000).toFixed(0)}</div>
+            {loading
+              ? [...Array(4)].map((_, i) => (
+                  <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-700 rounded w-1/2"></div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-green-400">+{Math.floor(Math.random() * 1000)}%</div>
-                  <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium mt-1">
-                    Trade
-                  </button>
-                </div>
-              </div>
-            ))}
+                ))
+              : biggestGainers.map((token, i) => (
+                  <motion.div
+                    key={i}
+                    className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.1 }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-700 rounded-full overflow-hidden">
+                        {token.profile?.icon && (
+                          <img
+                            src={token.profile.icon || "/placeholder.svg"}
+                            alt={token.pairData?.baseToken?.symbol || "Token"}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{token.pairData?.baseToken?.symbol || "???"}</div>
+                        <div className="text-xs text-gray-400">
+                          Vol: $
+                          {(token.pairData?.volume?.h24 || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-green-400">+{(token.pairData?.priceChange?.h24 || 0).toFixed(2)}%</div>
+                      <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium mt-1">
+                        Trade
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
           </div>
         </div>
       </div>

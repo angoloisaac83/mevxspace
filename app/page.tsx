@@ -49,6 +49,7 @@ const NAV_ITEMS = [
   { label: "DEGEN ZONE", path: "/degen-zone" },
   { label: "FAVORITES", path: "/favorites" },
   { label: "SNIPE", path: "/snipe/raydium", hasDropdown: true },
+  { label: "AUTOSNIPE", path: "/autosnipe" },
   { label: "PORTFOLIO", path: "/portfolio" },
   { label: "TOOLS", path: "/multi-chart", hasDropdown: true },
 ]

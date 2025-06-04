@@ -89,12 +89,7 @@ export default function WalletConnectModal({ onClose, onSuccess }) {
         onSuccess()
       } else {
         // Show success toast if no callback provided
-        toast.success(
-          <div>
-            <p>Wallet connected successfully</p>
-            <p className="text-sm">You need at least 0.7 SOL (incl. fee) to make purchases</p>
-          </div>,
-        )
+        toast.success("Wallet connected successfully! You need at least 0.8 SOL (incl. fee) to make purchases")
 
         // Close modal
         onClose()

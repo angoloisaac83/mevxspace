@@ -1,9 +1,43 @@
 "use client"
 
+import { useEffect } from "react"
+import { useTokenDataStore } from "@/lib/token-data-store"
 import PageTemplate from "@/components/page-template"
 import { Rocket, TrendingUp, AlertTriangle } from "lucide-react"
+import { motion } from "framer-motion"
 
 export default function MemeZonePage() {
+  const { tokenData, loading, fetchTokenData } = useTokenDataStore()
+
+  useEffect(() => {
+    if (tokenData.length === 0) {
+      fetchTokenData()
+    }
+  }, [tokenData.length, fetchTokenData])
+
+  // Filter tokens that might be meme coins
+  const memeTokens = tokenData.filter((token) => {
+    const name = token.pairData?.baseToken?.name?.toLowerCase() || ""
+    const symbol = token.pairData?.baseToken?.symbol?.toLowerCase() || ""
+    const description = token.profile?.description?.toLowerCase() || ""
+    const memeKeywords = ["meme", "doge", "shib", "pepe", "coin", "moon", "elon", "inu", "cat", "dog", "frog"]
+    return memeKeywords.some(
+      (keyword) => name.includes(keyword) || symbol.includes(keyword) || description.includes(keyword),
+    )
+  })
+
+  const trendingMemes = [...memeTokens]
+    .sort((a, b) => (b.pairData?.volume?.h24 || 0) - (a.pairData?.volume?.h24 || 0))
+    .slice(0, 3)
+
+  const newMemes = [...memeTokens]
+    .sort((a, b) => (b.pairData?.pairCreatedAt || 0) - (a.pairData?.pairCreatedAt || 0))
+    .slice(0, 3)
+
+  const highRiskMemes = [...memeTokens]
+    .sort((a, b) => Math.abs(b.pairData?.priceChange?.h24 || 0) - Math.abs(a.pairData?.priceChange?.h24 || 0))
+    .slice(0, 3)
+
   return (
     <PageTemplate title="Meme Zone">
       <div className="flex items-center gap-2 mb-4">
@@ -34,20 +68,43 @@ export default function MemeZonePage() {
             <h3 className="font-medium">Trending Memes</h3>
           </div>
           <div className="space-y-2 mt-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
-                  <div>
-                    <div className="font-medium">DOGE{i}</div>
-                    <div className="text-xs text-green-400">+{Math.floor(Math.random() * 100)}%</div>
+            {loading
+              ? [...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-700 rounded w-1/2"></div>
                   </div>
-                </div>
-                <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
-                  Buy
-                </button>
-              </div>
-            ))}
+                ))
+              : trendingMemes.map((token, i) => (
+                  <motion.div
+                    key={i}
+                    className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.1 }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-700 rounded-full overflow-hidden">
+                        {token.profile?.icon && (
+                          <img
+                            src={token.profile.icon || "/placeholder.svg"}
+                            alt={token.pairData?.baseToken?.symbol || "Token"}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{token.pairData?.baseToken?.symbol || "???"}</div>
+                        <div className="text-xs text-green-400">
+                          +{(token.pairData?.priceChange?.h24 || 0).toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
+                    <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
+                      Buy
+                    </button>
+                  </motion.div>
+                ))}
           </div>
         </div>
 
@@ -57,20 +114,41 @@ export default function MemeZonePage() {
             <h3 className="font-medium">New Memes</h3>
           </div>
           <div className="space-y-2 mt-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
-                  <div>
-                    <div className="font-medium">PEPE{i}</div>
-                    <div className="text-xs text-gray-400">Just launched</div>
+            {loading
+              ? [...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-700 rounded w-1/2"></div>
                   </div>
-                </div>
-                <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
-                  Buy
-                </button>
-              </div>
-            ))}
+                ))
+              : newMemes.map((token, i) => (
+                  <motion.div
+                    key={i}
+                    className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.1 }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-700 rounded-full overflow-hidden">
+                        {token.profile?.icon && (
+                          <img
+                            src={token.profile.icon || "/placeholder.svg"}
+                            alt={token.pairData?.baseToken?.symbol || "Token"}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{token.pairData?.baseToken?.symbol || "???"}</div>
+                        <div className="text-xs text-gray-400">Just launched</div>
+                      </div>
+                    </div>
+                    <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
+                      Buy
+                    </button>
+                  </motion.div>
+                ))}
           </div>
         </div>
 
@@ -80,20 +158,44 @@ export default function MemeZonePage() {
             <h3 className="font-medium">High Risk Memes</h3>
           </div>
           <div className="space-y-2 mt-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gray-700 rounded-full"></div>
-                  <div>
-                    <div className="font-medium">MOON{i}</div>
-                    <div className="text-xs text-red-400">-{Math.floor(Math.random() * 50)}%</div>
+            {loading
+              ? [...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-[#1a1a2e] p-3 rounded-lg animate-pulse">
+                    <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-700 rounded w-1/2"></div>
                   </div>
-                </div>
-                <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
-                  Buy
-                </button>
-              </div>
-            ))}
+                ))
+              : highRiskMemes.map((token, i) => (
+                  <motion.div
+                    key={i}
+                    className="bg-[#1a1a2e] p-3 rounded-lg flex justify-between items-center"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.1 }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gray-700 rounded-full overflow-hidden">
+                        {token.profile?.icon && (
+                          <img
+                            src={token.profile.icon || "/placeholder.svg"}
+                            alt={token.pairData?.baseToken?.symbol || "Token"}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{token.pairData?.baseToken?.symbol || "???"}</div>
+                        <div className="text-xs text-red-400">
+                          {(token.pairData?.priceChange?.h24 || 0) > 0 ? "+" : ""}
+                          {(token.pairData?.priceChange?.h24 || 0).toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
+                    <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
+                      Buy
+                    </button>
+                  </motion.div>
+                ))}
           </div>
         </div>
       </div>
@@ -106,30 +208,77 @@ export default function MemeZonePage() {
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">Token</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">Launch Date</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">Initial Price</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">Current Price</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">24h Change</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-400">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <tr key={i} className="hover:bg-[#1a1a2e]">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-gray-700 rounded-full"></div>
-                      <span>MEME{i}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm">May {10 + i}, 2025</td>
-                  <td className="px-4 py-3 text-sm">${(0.0001 * i).toFixed(6)}</td>
-                  <td className="px-4 py-3 text-sm">${(0.0001 * i * (Math.random() * 10 + 1)).toFixed(6)}</td>
-                  <td className="px-4 py-3">
-                    <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
-                      Trade
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {loading
+                ? [...Array(5)].map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-4 py-3">
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="h-4 bg-gray-700 rounded"></div>
+                      </td>
+                    </tr>
+                  ))
+                : memeTokens.slice(0, 10).map((token, i) => (
+                    <motion.tr
+                      key={i}
+                      className="hover:bg-[#1a1a2e]"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: i * 0.05 }}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gray-700 rounded-full overflow-hidden">
+                            {token.profile?.icon && (
+                              <img
+                                src={token.profile.icon || "/placeholder.svg"}
+                                alt={token.pairData?.baseToken?.symbol || "Token"}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <span>{token.pairData?.baseToken?.symbol || "???"}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {token.pairData?.pairCreatedAt
+                          ? new Date(token.pairData.pairCreatedAt).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        ${Number.parseFloat(token.pairData?.priceUsd || "0").toFixed(8)}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <span
+                          className={(token.pairData?.priceChange?.h24 || 0) > 0 ? "text-green-400" : "text-red-400"}
+                        >
+                          {(token.pairData?.priceChange?.h24 || 0) > 0 ? "+" : ""}
+                          {(token.pairData?.priceChange?.h24 || 0).toFixed(2)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button className="bg-[#2F80ED] hover:bg-[#2D74D6] text-white px-3 py-1 rounded-md text-xs font-medium">
+                          Trade
+                        </button>
+                      </td>
+                    </motion.tr>
+                  ))}
             </tbody>
           </table>
         </div>
