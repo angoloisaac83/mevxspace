@@ -136,6 +136,7 @@ export default function MainMenu({ isOpen, onClose }: MainMenuProps) {
                 <MenuButton label="PORTFOLIO" onClick={() => handleNavigation("/portfolio")} />
                 <MenuButton label="MULTI CHART" onClick={() => handleNavigation("/multi-chart")} />
                 <MenuButton label="WALLET TRACKER" onClick={() => handleNavigation("/wallet-tracker")} />
+                <MenuButton label="AUTOSNIPE" onClick={() => handleNavigation("/autosnipe")} />
               </div>
 
               <div className="border-t border-gray-700 my-3"></div>
