@@ -7,7 +7,22 @@ import PageTemplate from "@/components/page-template"
 import { useWalletStore } from "@/lib/wallet-store"
 import WalletConnectModal from "@/components/wallet-connect-modal"
 import { toast } from "@/hooks/use-toast"
-import { useTokenDataStore } from "@/lib/token-data-store"
+
+interface Token {
+  id: string
+  symbol: string
+  name: string
+  price: string | number
+  change24h: string | number
+  volume24h: string | number
+  liquidity: string | number
+  marketCap: string | number
+  buyTax?: string | number
+  sellTax?: string | number
+  holders?: string | number
+  age?: string
+  icon?: string
+}
 
 interface AutoSnipeConfig {
   id: string
@@ -24,8 +39,8 @@ interface AutoSnipeConfig {
 }
 
 export default function AutoSnipePage() {
-  // Use the global token data store
-  const { tokenData, loading, fetchTokenData } = useTokenDataStore()
+  const [tokens, setTokens] = useState<Token[]>([])
+  const [loading, setLoading] = useState(true)
   const [autoSnipingTokens, setAutoSnipingTokens] = useState<string[]>([])
   const [configs, setConfigs] = useState<AutoSnipeConfig[]>([
     {
@@ -72,6 +87,41 @@ export default function AutoSnipePage() {
     slippage: 15,
   })
 
+  // Fetch token data
+  const fetchTokenData = async () => {
+    setLoading(true)
+    try {
+      // First try to fetch from the real API
+      let response = await fetch("/api/tokens")
+
+      // If that fails, use the mock API
+      if (!response.ok) {
+        console.log("Using mock token data instead")
+        response = await fetch("/api/mock-tokens")
+      }
+
+      if (response.ok) {
+        const data = await response.json()
+        setTokens(data.data || [])
+      }
+    } catch (error) {
+      console.error("Failed to fetch token data:", error)
+
+      // Try mock data as fallback
+      try {
+        const mockResponse = await fetch("/api/mock-tokens")
+        if (mockResponse.ok) {
+          const mockData = await mockResponse.json()
+          setTokens(mockData.data || [])
+        }
+      } catch (mockError) {
+        console.error("Failed to fetch mock token data:", mockError)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Fetch token data on component mount
   useEffect(() => {
     fetchTokenData()
@@ -80,7 +130,7 @@ export default function AutoSnipePage() {
       fetchTokenData()
     }, 15000)
     return () => clearInterval(interval)
-  }, [fetchTokenData])
+  }, [])
 
   const handleAutoSnipe = (tokenId: string) => {
     if (!isConnected) {
@@ -95,7 +145,7 @@ export default function AutoSnipePage() {
 
     setAutoSnipingTokens((prev) => (prev.includes(tokenId) ? prev.filter((id) => id !== tokenId) : [...prev, tokenId]))
 
-    const token = tokenData.find((t) => t.id === tokenId)
+    const token = tokens.find((t) => t.id === tokenId)
     if (token) {
       if (autoSnipingTokens.includes(tokenId)) {
         toast.success(`AutoSnipe disabled for ${token.symbol}`)
@@ -178,6 +228,19 @@ export default function AutoSnipePage() {
     setShowConfigModal(true)
   }
 
+  // Helper functions to safely parse values
+  const safeParseFloat = (value: string | number | undefined, defaultValue = 0): number => {
+    if (value === undefined || value === null) return defaultValue
+    const parsed = typeof value === "string" ? Number.parseFloat(value) : value
+    return isNaN(parsed) ? defaultValue : parsed
+  }
+
+  const safeParseInt = (value: string | number | undefined, defaultValue = 0): number => {
+    if (value === undefined || value === null) return defaultValue
+    const parsed = typeof value === "string" ? Number.parseInt(value) : value
+    return isNaN(parsed) ? defaultValue : parsed
+  }
+
   // Generate skeleton loading UI
   const renderSkeletons = () => {
     return Array(5)
@@ -253,7 +316,7 @@ export default function AutoSnipePage() {
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Available Tokens</p>
-                <p className="text-xl font-bold text-white">{loading ? "..." : tokenData.length}</p>
+                <p className="text-xl font-bold text-white">{loading ? "..." : tokens.length}</p>
               </div>
             </div>
           </div>
@@ -311,12 +374,27 @@ export default function AutoSnipePage() {
         {activeTab === "tokens" ? (
           <div className="space-y-4">
             <div className="text-sm text-gray-400 mb-4">
-              {loading ? "Loading tokens..." : `${tokenData.length} tokens available for AutoSnipe`}
+              {loading ? "Loading tokens..." : `${tokens.length} tokens available for AutoSnipe`}
             </div>
 
-            {loading
-              ? renderSkeletons()
-              : tokenData.map((token) => (
+            {loading ? (
+              renderSkeletons()
+            ) : tokens.length === 0 ? (
+              <div className="text-center py-12">
+                <Target className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-400 mb-2">No Tokens Available</h3>
+                <p className="text-gray-500">No tokens are currently available for AutoSnipe</p>
+              </div>
+            ) : (
+              tokens.map((token) => {
+                const price = safeParseFloat(token.price)
+                const change24h = safeParseFloat(token.change24h)
+                const liquidity = safeParseFloat(token.liquidity)
+                const buyTax = safeParseFloat(token.buyTax)
+                const sellTax = safeParseFloat(token.sellTax)
+                const holders = safeParseInt(token.holders)
+
+                return (
                   <motion.div
                     key={token.id}
                     className="bg-[#1a1a2e] border border-gray-800 rounded-lg p-4"
@@ -331,8 +409,8 @@ export default function AutoSnipePage() {
                             {token.symbol ? token.symbol.charAt(0) : "?"}
                           </div>
                           <div>
-                            <h3 className="text-lg font-semibold text-white">{token.symbol}</h3>
-                            <p className="text-gray-400 text-sm">{token.name}</p>
+                            <h3 className="text-lg font-semibold text-white">{token.symbol || "Unknown"}</h3>
+                            <p className="text-gray-400 text-sm">{token.name || "Unknown Token"}</p>
                           </div>
                           <span className="text-xs text-gray-500">Age: {token.age || "New"}</span>
                           {autoSnipingTokens.includes(token.id) && (
@@ -345,46 +423,38 @@ export default function AutoSnipePage() {
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
                           <div>
                             <p className="text-gray-400">Price</p>
-                            <p className="text-white font-medium">${Number.parseFloat(token.price).toFixed(6)}</p>
+                            <p className="text-white font-medium">${price.toFixed(6)}</p>
                           </div>
                           <div>
                             <p className="text-gray-400">24h Change</p>
                             <p
                               className={`font-medium flex items-center gap-1 ${
-                                Number.parseFloat(token.change24h) >= 0 ? "text-green-400" : "text-red-400"
+                                change24h >= 0 ? "text-green-400" : "text-red-400"
                               }`}
                             >
-                              {Number.parseFloat(token.change24h) >= 0 ? (
+                              {change24h >= 0 ? (
                                 <TrendingUp className="h-3 w-3" />
                               ) : (
                                 <TrendingDown className="h-3 w-3" />
                               )}
-                              {Number.parseFloat(token.change24h).toFixed(1)}%
+                              {change24h.toFixed(1)}%
                             </p>
                           </div>
                           <div>
                             <p className="text-gray-400">Liquidity</p>
-                            <p className="text-white font-medium">
-                              {Number.parseFloat(token.liquidity || "0").toFixed(0)} SOL
-                            </p>
+                            <p className="text-white font-medium">{liquidity.toFixed(0)} SOL</p>
                           </div>
                           <div>
                             <p className="text-gray-400">Buy Tax</p>
-                            <p className="text-white font-medium">
-                              {Number.parseFloat(token.buyTax || "0").toFixed(1)}%
-                            </p>
+                            <p className="text-white font-medium">{buyTax.toFixed(1)}%</p>
                           </div>
                           <div>
                             <p className="text-gray-400">Sell Tax</p>
-                            <p className="text-white font-medium">
-                              {Number.parseFloat(token.sellTax || "0").toFixed(1)}%
-                            </p>
+                            <p className="text-white font-medium">{sellTax.toFixed(1)}%</p>
                           </div>
                           <div>
                             <p className="text-gray-400">Holders</p>
-                            <p className="text-white font-medium">
-                              {Number.parseInt(token.holders || "0").toLocaleString()}
-                            </p>
+                            <p className="text-white font-medium">{holders.toLocaleString()}</p>
                           </div>
                         </div>
                       </div>
@@ -410,7 +480,9 @@ export default function AutoSnipePage() {
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                )
+              })
+            )}
           </div>
         ) : (
           <div className="space-y-4">
