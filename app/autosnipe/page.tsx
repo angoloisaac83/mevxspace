@@ -97,7 +97,7 @@ export default function AutoSnipePage() {
       // If that fails, use the mock API
       if (!response.ok) {
         console.log("Using mock token data instead")
-        response = await fetch("/api/mock-tokens")
+        response = await fetch("/api/tokens")
       }
 
       if (response.ok) {
@@ -109,7 +109,7 @@ export default function AutoSnipePage() {
 
       // Try mock data as fallback
       try {
-        const mockResponse = await fetch("/api/mock-tokens")
+        const mockResponse = await fetch("/api/tokens")
         if (mockResponse.ok) {
           const mockData = await mockResponse.json()
           setTokens(mockData.data || [])
